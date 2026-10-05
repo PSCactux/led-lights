@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 320" width="800" height="320" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="13">
+  <rect width="800" height="320" rx="12" fill="#ffffff"/>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#2563eb"/></marker>
+  </defs>
+
+  <!-- 5 V rail, with power injection at the far end -->
+  <path d="M220 40H530V170H580" stroke="#dc2626" stroke-width="3" fill="none"/>
+  <path d="M530 40H780V170H760" stroke="#dc2626" stroke-width="3" fill="none"/>
+  <text x="300" y="32" fill="#dc2626">+5 V (thick wire)</text>
+  <text x="775" y="32" fill="#dc2626" font-size="11" text-anchor="end">power injection at the far end</text>
+  <!-- GND rail, shared with the controller -->
+  <path d="M220 70H470V240H580" stroke="#111827" stroke-width="3" fill="none"/>
+  <path d="M470 240V280H220" stroke="#111827" stroke-width="2" fill="none"/>
+  <circle cx="470" cy="240" r="4" fill="#111827"/>
+  <text x="300" y="62" fill="#111827">GND</text>
+  <text x="300" y="298" fill="#111827" font-size="11">common ground with the controller</text>
+
+  <!-- Capacitor across 5 V / GND at the strip input -->
+  <path d="M470 120H497M503 120H530" stroke="#374151" stroke-width="2" fill="none"/>
+  <path d="M497 108V132M503 108V132" stroke="#374151" stroke-width="3" fill="none"/>
+  <circle cx="470" cy="120" r="4" fill="#111827"/><circle cx="530" cy="120" r="4" fill="#dc2626"/>
+  <text x="540" y="116" fill="#374151" font-size="12">1000 µF</text>
+  <text x="540" y="131" fill="#6b7280" font-size="11">at the strip input</text>
+
+  <!-- Power supply -->
+  <rect x="20" y="20" width="200" height="66" rx="8" fill="#fef3c7" stroke="#b45309"/>
+  <text x="120" y="47" text-anchor="middle" font-weight="600" fill="#1f2937">5 V power supply</text>
+  <text x="120" y="67" text-anchor="middle" fill="#4b5563">sized for your current budget</text>
+
+  <!-- Controller -->
+  <rect x="20" y="170" width="200" height="124" rx="8" fill="#e0e7ff" stroke="#3730a3"/>
+  <text x="120" y="194" text-anchor="middle" font-weight="600" fill="#1f2937">Raspberry Pi</text>
+  <text x="210" y="214" text-anchor="end" fill="#1f2937">GPIO18 (pin 12)</text>
+  <text x="210" y="284" text-anchor="end" fill="#1f2937">GND (pin 6)</text>
+  <text x="120" y="240" text-anchor="middle" fill="#6b7280" font-size="11">or ESP32 / Pico GPIO</text>
+  <text x="120" y="255" text-anchor="middle" fill="#6b7280" font-size="11">(3.3 V logic)</text>
+
+  <!-- Data path: level shifter, series resistor -->
+  <rect x="270" y="186" width="130" height="50" rx="8" fill="#f3f4f6" stroke="#374151"/>
+  <text x="335" y="207" text-anchor="middle" font-weight="600" fill="#1f2937">74AHCT125</text>
+  <text x="335" y="225" text-anchor="middle" fill="#4b5563" font-size="11">3.3 V → 5 V</text>
+  <path d="M220 210H270" stroke="#2563eb" stroke-width="2" fill="none" marker-end="url(#a)"/>
+  <path d="M400 210H412" stroke="#2563eb" stroke-width="2" fill="none"/>
+  <rect x="412" y="201" width="44" height="18" rx="3" fill="#fff" stroke="#374151"/>
+  <text x="434" y="214" text-anchor="middle" fill="#1f2937" font-size="11">330 Ω</text>
+  <path d="M456 210H550V205H580" stroke="#2563eb" stroke-width="2" fill="none" marker-end="url(#a)"/>
+  <text x="485" y="200" fill="#2563eb" font-size="11">data</text>
+
+  <!-- Strip -->
+  <rect x="580" y="150" width="180" height="110" rx="8" fill="#111827"/>
+  <text x="590" y="174" fill="#fca5a5" font-size="11">5V</text>
+  <text x="590" y="209" fill="#93c5fd" font-size="11">DIN</text>
+  <text x="590" y="244" fill="#d1d5db" font-size="11">GND</text>
+  <g><circle cx="640" cy="205" r="7" fill="#f472b6"/><circle cx="664" cy="205" r="7" fill="#fb923c"/><circle cx="688" cy="205" r="7" fill="#facc15"/><circle cx="712" cy="205" r="7" fill="#4ade80"/><circle cx="736" cy="205" r="7" fill="#38bdf8"/></g>
+  <text x="670" y="282" text-anchor="middle" font-weight="600" fill="#1f2937">WS2812B strip / matrix</text>
+</svg>

@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LED Lights Simulator</title>
+<meta name="description" content="WS2812 / NeoPixel strip and matrix effects, simulated in the browser.">
+<style>
+  :root {
+    --bg: #0b0b10; --panel: #15151d; --text: #e7e7ee; --muted: #9a9aab; --accent: #6ee7b7; --line: #262633;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 960px; margin: 0 auto; padding: 32px 16px 48px; }
+  h1 { font-size: 1.6rem; margin: 0 0 4px; letter-spacing: -0.01em; }
+  p.lead { color: var(--muted); margin: 0 0 24px; }
+  .stage { background: #050507; border: 1px solid var(--line); border-radius: 12px; padding: 16px;
+    display: flex; justify-content: center; align-items: center; min-height: 120px; }
+  canvas { max-width: 100%; height: auto; display: block; }
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px 20px;
+    margin-top: 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  label { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; color: var(--muted); }
+  label span.v { color: var(--text); font-variant-numeric: tabular-nums; }
+  select, input[type=range] { width: 100%; accent-color: var(--accent); }
+  select { background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 6px; font: inherit; }
+  .status { margin-top: 12px; color: var(--muted); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+  .status b { color: var(--text); font-weight: 600; }
+  .status .warn { color: #fbbf24; }
+  footer { margin-top: 32px; color: var(--muted); font-size: 0.85rem; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>LED Lights Simulator</h1>
+  <p class="lead">Effects for WS2812 / NeoPixel strips and 16&times;16 matrices, running in your browser.
+    The same math drives real LEDs from a Raspberry Pi or an ESP32.</p>
+
+  <div class="stage"><canvas id="leds" width="960" height="60" aria-label="Simulated LEDs"></canvas></div>
+
+  <div class="controls">
+    <label>Effect <select id="effect"></select></label>
+    <label>LEDs <span class="v" id="ledsV"></span><input id="count" type="range" min="8" max="150" value="60"></label>
+    <label>Brightness <span class="v" id="brightV"></span><input id="bright" type="range" min="5" max="100" value="80"></label>
+    <label>Speed <span class="v" id="speedV"></span><input id="speed" type="range" min="10" max="300" value="100"></label>
+    <label>Current budget <span class="v" id="budgetV"></span><input id="budget" type="range" min="200" max="6000" step="100" value="2000"></label>
+  </div>
+  <div class="status" id="status"></div>
+
+  <footer>Part of <a href="https://github.com/&lt;github-user&gt;/led-lights">led-lights</a>.
+    Current estimate assumes ~20&nbsp;mA per color channel at full duty after gamma 2.6, plus ~1&nbsp;mA idle per LED.</footer>
+</main>
+<script src="effects.js"></script>
+<script>
+(() => {
+  const { EFFECTS, output, gammaTable } = window.LedLights;
+  const GAMMA = 2.6, table = gammaTable(GAMMA);
+  const $ = (id) => document.getElementById(id);
+  const canvas = $("leds"), ctx = canvas.getContext("2d");
+
+  const sel = $("effect");
+  for (const [group, isMatrix] of [["Strip", false], ["Matrix 16×16", true]]) {
+    const og = document.createElement("optgroup"); og.label = group;
+    for (const [name, e] of Object.entries(EFFECTS)) if (e.matrix === isMatrix) og.append(new Option(name.replace(/_/g, " "), name));
+    sel.append(og);
+  }
+  const fromHash = location.hash.slice(1);
+  if (EFFECTS[fromHash]) sel.value = fromHash;
+
+  let render, t = 0, last = performance.now();
+  function pick() {
+    render = EFFECTS[sel.value].create(); t = 0;
+    $("count").disabled = EFFECTS[sel.value].matrix;
+    history.replaceState(null, "", "#" + sel.value);
+  }
+  sel.addEventListener("change", pick);
+  pick();
+
+  function layout(n, matrix) {
+    const cols = matrix ? 16 : Math.min(n, 75), rows = Math.ceil(n / cols);
+    const cell = matrix ? 26 : Math.floor(940 / cols);
+    canvas.width = cols * cell + cell; canvas.height = rows * cell + cell;
+    return { cols, cell };
+  }
+
+  function frame(now) {
+    const speed = +$("speed").value / 100;
+    t += Math.min(0.1, (now - last) / 1000) * speed; last = now;
+    const matrix = EFFECTS[sel.value].matrix;
+    const n = matrix ? 256 : +$("count").value, w = matrix ? 16 : n, h = matrix ? 16 : 1;
+    const bright = +$("bright").value / 100, budget = +$("budget").value;
+    $("ledsV").textContent = matrix ? "256 (16×16)" : n;
+    $("brightV").textContent = Math.round(bright * 100) + "%";
+    $("speedV").textContent = speed.toFixed(1) + "×";
+    $("budgetV").textContent = (budget / 1000).toFixed(1) + " A";
+
+    const out = output(render(t, n, w, h).slice(0, n), bright, budget, table, GAMMA);
+    const { cols, cell } = layout(n, matrix);
+    ctx.fillStyle = "#050507"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const r = cell * 0.34;
+    for (let pass = 0; pass < 2; pass++) {  // pass 0: glow, pass 1: LED bodies
+      ctx.globalCompositeOperation = pass ? "source-over" : "lighter";
+      out.display.forEach((c, i) => {
+        const x = cell + (i % cols) * cell, y = cell + Math.floor(i / cols) * cell;
+        const lit = c[0] + c[1] + c[2] > 0;
+        if (!pass && !lit) return;
+        ctx.shadowBlur = pass ? 0 : cell * 0.9;
+        ctx.shadowColor = `rgb(${c})`;
+        ctx.fillStyle = lit ? `rgb(${c})` : "#1c1c22";
+        ctx.beginPath(); ctx.arc(x, y, pass ? r : r * 1.1, 0, Math.PI * 2); ctx.fill();
+      });
+    }
+    ctx.globalCompositeOperation = "source-over"; ctx.shadowBlur = 0;
+    $("status").innerHTML = `Estimated draw <b>${Math.round(out.ma)} mA</b> at 5 V` +
+      (out.limit < 1 ? ` <span class="warn">current limiter at ${Math.round(out.limit * 100)}%</span>` : "");
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
